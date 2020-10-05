@@ -2,8 +2,11 @@ import aed3.ArvoreBMais_Int_Int;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.UUID;
 
 class Colors {
@@ -12,6 +15,24 @@ class Colors {
     public static final String ANSI_GREEN = "\u001B[32m";
     public static final String ANSI_YELLOW = "\u001B[33m";
     public static final String ANSI_CYAN = "\u001B[36m";
+}
+
+class Encrypt {
+    public static String getPassword(String password) throws NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        byte[] bytes = md.digest(password.getBytes(StandardCharsets.UTF_8));
+
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : bytes) {
+            hexString.append(String.format("%02X", 0xFF & b));
+        }
+
+        return hexString.toString();
+    }
+
+    public static boolean checkPassword(String inputPassword, String hash) throws NoSuchAlgorithmException {
+        return getPassword(inputPassword).equals(hash);
+    }
 }
 
 public class Main {
@@ -99,7 +120,7 @@ public class Main {
             return null;
         }
 
-        if(!password.equals(tmpUser.getPassword())) {
+        if(!Encrypt.checkPassword(password, tmpUser.getPassword())) {
             System.out.println(Colors.ANSI_RED + "\nSenha incorreta!\n" + Colors.ANSI_RESET);
             return null;
         }
@@ -153,7 +174,7 @@ public class Main {
         System.out.print("Insira seu nome: ");
         String name = input.readLine();
         System.out.print("Insira sua senha: ");
-        String password = input.readLine();
+        String password = Encrypt.getPassword(input.readLine());
 
         try {
             userDatabase.create(new Usuario(name, email, password));
@@ -178,7 +199,7 @@ public class Main {
             return;
         }
 
-        String tmpPassword = UUID.randomUUID().toString().substring(0, 8);
+        String tmpPassword = Encrypt.getPassword(UUID.randomUUID().toString().substring(0, 8));
         tmpUser.setPassword(tmpPassword);
         userDatabase.update(tmpUser);
 
