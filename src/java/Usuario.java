@@ -114,11 +114,11 @@ public class Usuario implements Registro {
 
     public String toString() {
         return "Usuario{" +
-                "ID=" + ID +
+                "ID=" + this.ID +
 //                ", user='" + user + '\'' +
-                ", password='" + password + '\'' +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
+                ", password='" + this.password + '\'' +
+                ", name='" + this.name + '\'' +
+                ", email='" + this.email + '\'' +
 //                ", birthdate=" + birthdate +
                 '}';
     }

@@ -1,6 +1,7 @@
 import java.io.*;
 import java.lang.reflect.Constructor;
 
+import aed3.ArvoreBMais_Int_Int;
 import aed3.ArvoreBMais_String_Int;
 import aed3.HashExtensivel;
 
@@ -22,7 +23,7 @@ public class CRUD<T extends Registro> {
             testDir.mkdir();
         }
 
-        this.primaryIndex = new HashExtensivel(10, this.fileName + ".diretory.idx", this.fileName + ".bucket.idx");
+        this.primaryIndex = new HashExtensivel(10, this.fileName + ".directory.idx", this.fileName + ".bucket.idx");
         this.secondaryIndex = new ArvoreBMais_String_Int(5, this.fileName + ".tree.idx");
     }
 
@@ -54,7 +55,10 @@ public class CRUD<T extends Registro> {
 
         // ESCRITA INDICES DIRETOS E INDIRETOS
         this.primaryIndex.create(ID, address);
-        this.secondaryIndex.create(object.secondaryKey(), ID);
+        String key = object.secondaryKey();
+        if(key != null) {
+            this.secondaryIndex.create(key, ID);
+        }
 
         return ID;
     }
@@ -142,9 +146,19 @@ public class CRUD<T extends Registro> {
             file.writeShort(newData.length);
             file.write(newData);
             // FAZ ATUALIZAÇÃO DOS ÍNDICES DIRETO E INDIRETO
-            this.primaryIndex.update(currentObject.getID(), newAddress);
-            this.secondaryIndex.delete(currentObject.secondaryKey());
-            return this.secondaryIndex.create(newObject.secondaryKey(), newObject.getID());
+            boolean result = this.primaryIndex.update(currentObject.getID(), newAddress);
+
+            String currentKey = currentObject.secondaryKey();
+            if(currentKey != null) {
+                result = this.secondaryIndex.delete(currentKey);
+            }
+
+            String newKey = newObject.secondaryKey();
+            if(newKey != null) {
+                result = this.secondaryIndex.create(newKey, newObject.getID());
+            }
+
+            return result;
         }
 
         // CASO SEJA MENOR OU IGUAL, O NOVO BYTE ARRAY É ESCRITO, SOBRESCREVENDO O ATUAL
@@ -152,8 +166,18 @@ public class CRUD<T extends Registro> {
         file.readShort();
         file.write(newData);
         // ATUALIZAÇÃO DO ÍNDICE INDIRETO, JÁ QUE O REGISTRO PERMANECE NO MESMO ENDEREÇO
-        this.secondaryIndex.delete(currentObject.secondaryKey());
-        return this.secondaryIndex.create(newObject.secondaryKey(), newObject.getID());
+        boolean result = true;
+        String currentKey = currentObject.secondaryKey();
+        if(currentKey != null) {
+            result = this.secondaryIndex.delete(currentKey);
+        }
+
+        String newKey = newObject.secondaryKey();
+        if(newKey != null) {
+            result = this.secondaryIndex.create(newKey, newObject.getID());
+        }
+
+        return result;
     }
 
     public boolean delete(int ID) throws Exception {
@@ -183,6 +207,12 @@ public class CRUD<T extends Registro> {
         // ESCREVE A LÁPIDE
         file.writeByte(1);  // SUPER F
         // RETORNA SE A DELEÇÃO DOS ÍNDICES INDIRETO E DIRETO FOI CONCLUÍDA COM SUCESSO
-        return this.secondaryIndex.delete(object.secondaryKey()) && this.primaryIndex.delete(ID);
+        boolean result = true;
+        String key = object.secondaryKey();
+        if(key != null) {
+            result = this.secondaryIndex.delete(key);
+        }
+
+        return result && this.primaryIndex.delete(ID);
     }
 }
