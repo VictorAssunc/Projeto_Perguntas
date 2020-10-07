@@ -1,5 +1,6 @@
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 public class Pergunta implements Registro {
@@ -10,6 +11,7 @@ public class Pergunta implements Registro {
     private short rating;
     private String question;
     private boolean status;
+    private String keywords;
 
     public Pergunta() {
         this.ID = -1;
@@ -18,15 +20,17 @@ public class Pergunta implements Registro {
         this.rating = 0;
         this.question = "";
         this.status = true;
+        this.keywords = "";
     }
 
-    public Pergunta(int userID, String question) {
+    public Pergunta(int userID, String question, String keywords) {
         this.ID = -1;
         this.userID = userID;
         this.createdAt = System.currentTimeMillis();
         this.rating = 0;
         this.question = question;
         this.status = true;
+        this.keywords = keywords;
     }
 
     public void setID(int ID) {
@@ -43,6 +47,8 @@ public class Pergunta implements Registro {
 
     public void setStatus(boolean status) { this.status = status; }
 
+    public void setKeywords(String keywords) { this.keywords = keywords; }
+
     public int getID() {
         return this.ID;
     }
@@ -57,8 +63,16 @@ public class Pergunta implements Registro {
 
     public boolean getStatus() { return this.status; }
 
+    public String getKeywords() { return this.keywords; }
+
     public String getFormattedDate() {
         SimpleDateFormat formatter= new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+        Date createdAt = new Date(this.createdAt);
+        return formatter.format(createdAt);
+    }
+
+    public String getHumanizedDate() {
+        SimpleDateFormat formatter= new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm");
         Date createdAt = new Date(this.createdAt);
         return formatter.format(createdAt);
     }
@@ -77,6 +91,7 @@ public class Pergunta implements Registro {
         dataOutputStream.writeShort(this.rating);
         dataOutputStream.writeUTF(this.question);
         dataOutputStream.writeBoolean(this.status);
+        dataOutputStream.writeUTF(this.keywords);
 
         return byteArrayOutputStream.toByteArray();
     }
@@ -91,6 +106,7 @@ public class Pergunta implements Registro {
         this.rating = dataInputStream.readShort();
         this.question = dataInputStream.readUTF();
         this.status = dataInputStream.readBoolean();
+        this.keywords = dataInputStream.readUTF();
     }
 
     @Override
@@ -104,6 +120,7 @@ public class Pergunta implements Registro {
                 ", rating=" + this.rating +
                 ", question='" + this.question + '\'' +
                 ", status=" + this.status +
+                ", keywords='" + this.keywords + '\'' +
                 '}';
     }
 }
