@@ -266,7 +266,7 @@ public class Main {
             System.out.println(question.getFormattedDate());
             System.out.printf("Palavras chave: %s\n", question.getKeywords());
             System.out.printf("%s\n", question.getQuestion());
-            System.out.printf("%d \u2b50\n\n", question.getRating());
+            System.out.printf("%d\n\n", question.getRating());
         }
 
         sleep(questionsIDs.length * 1.5);
@@ -338,7 +338,7 @@ public class Main {
                 System.out.println(question.getFormattedDate());
                 System.out.printf("Palavras chave: %s\n", question.getKeywords());
                 System.out.printf("%s\n", question.getQuestion());
-                System.out.printf("%d \u2b50\n\n", question.getRating());
+                System.out.printf("%d\n\n", question.getRating());
             }
         }
 
@@ -354,7 +354,7 @@ public class Main {
             System.out.printf("%d.\n", ID);
             System.out.println(question.getFormattedDate());
             System.out.printf("%s\n", question.getQuestion());
-            System.out.printf("%d \u2b50\n\n", question.getRating());
+            System.out.printf("%d\n\n", question.getRating());
 
             System.out.print("Insira a nova pergunta: ");
             String newQuestionText = input.readLine();
@@ -419,7 +419,7 @@ public class Main {
                 System.out.println(question.getFormattedDate());
                 System.out.printf("Palavras chave: %s\n", question.getKeywords());
                 System.out.printf("%s\n", question.getQuestion());
-                System.out.printf("%d \u2b50\n\n", question.getRating());
+                System.out.printf("%d\n\n", question.getRating());
             }
         }
 
@@ -499,7 +499,7 @@ public class Main {
                 System.out.printf("\n%d. \n", question.getID());
                 System.out.println(question.getFormattedDate());
                 System.out.printf("%s\n", question.getQuestion());
-                System.out.printf("%d \u2b50\n", question.getRating());
+                System.out.printf("%d\n", question.getRating());
             }
 
             System.out.println("\n0) Retornar\n");
@@ -533,7 +533,7 @@ public class Main {
         questionBox(question.getQuestion());
         System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), userDatabase.read(question.getUserID()).getName());
         System.out.printf("Palavras chave: %s\n", question.getKeywords());
-        System.out.printf("Nota: %d \u2b50\n", question.getRating());
+        System.out.printf("Nota: %d\n", question.getRating());
 
         System.out.println("\nCOMENTÁRIOS\n-----------");
         System.out.println("\nRESPOSTAS\n---------");
