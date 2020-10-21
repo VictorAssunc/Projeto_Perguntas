@@ -11,7 +11,7 @@ public class CRUD<T extends Registro> {
     public final Constructor<T> constructor;
     public final String fileName;
     public final HashExtensivel primaryIndex;
-    public final ArvoreBMais_String_Int secondaryIndex;
+    public ArvoreBMais_String_Int secondaryIndex = null;
 
     public CRUD(Constructor<T> constructor, String fileName) throws Exception {
         this.constructor = constructor;
@@ -24,7 +24,9 @@ public class CRUD<T extends Registro> {
         }
 
         this.primaryIndex = new HashExtensivel(10, this.fileName + ".directory.idx", this.fileName + ".bucket.idx");
-        this.secondaryIndex = new ArvoreBMais_String_Int(5, this.fileName + ".tree.idx");
+        if(constructor.newInstance().secondaryKey() != null) {
+            this.secondaryIndex = new ArvoreBMais_String_Int(5, this.fileName + ".tree.idx");
+        }
     }
 
     public int create(T object) throws Exception {

@@ -38,14 +38,30 @@ public class Main {
     static boolean logged;
     static Usuario user;
     static BufferedReader input = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+    static CRUD<Usuario> usersDatabase;
+    static CRUD<Pergunta> questionsDatabase;
+    static CRUD<Resposta> answersDatabase;
+    static ListaInvertida keywordsDatabase;
+    static ArvoreBMais_Int_Int relUserQuestions;
+    static ArvoreBMais_Int_Int relUserAnswers;
+    static ArvoreBMais_Int_Int relQuestionAnswers;
+
 
     public static void main(String[] args) throws Exception {
-        CRUD<Pergunta> questionDatabase = new CRUD<>(Pergunta.class.getConstructor(), "questions");
-        ArvoreBMais_Int_Int relUserQuestions = new ArvoreBMais_Int_Int(5, "testdata/relationship_user_questions.idx");
-        if(relUserQuestions.empty()) { relUserQuestions.create(0, 0); }
-        ListaInvertida keywordsDatabase = new ListaInvertida(5, "testdata/keywords_dictionary.db", "testdata/keywords_blocks.db");
+        usersDatabase = new CRUD<>(Usuario.class.getConstructor(), "users");
+        questionsDatabase = new CRUD<>(Pergunta.class.getConstructor(), "questions");
+        answersDatabase = new CRUD<>(Resposta.class.getConstructor(), "answers");
+        keywordsDatabase = new ListaInvertida(5, "testdata/keywords_dictionary.db", "testdata/keywords_blocks.db");
 
-        CRUD<Usuario> userDatabase = new CRUD<>(Usuario.class.getConstructor(), "users");
+        relUserQuestions = new ArvoreBMais_Int_Int(5, "testdata/relationship_user_questions.idx");
+        if(relUserQuestions.empty()) { relUserQuestions.create(0, 0); }
+
+        relUserAnswers = new ArvoreBMais_Int_Int(5, "testdata/relationship_user_answers.idx");
+        if(relUserAnswers.empty()) { relUserAnswers.create(0, 0); }
+
+        relQuestionAnswers = new ArvoreBMais_Int_Int(5, "testdata/relationship_question_answers.idx");
+        if(relQuestionAnswers.empty()) { relQuestionAnswers.create(0, 0); }
+
         while(true) {
             if(!logged) {
                 System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nACESSO\n");
@@ -59,21 +75,21 @@ public class Main {
 
                 switch(option) {
                     case 1:
-                        user = login(userDatabase);
+                        user = login();
                         logged = (user != null);
                         break;
 
                     case 2:
-                        signup(userDatabase);
+                        signup();
                         break;
 
                     case 3:
-                        passwordRecovery(userDatabase);
+                        passwordRecovery();
                         break;
                 }
             } else {
                 System.out.println("\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO");
-                System.out.printf("Olá, %s%s%s!\n\n", Colors.ANSI_GREEN, user.getName(), Colors.ANSI_RESET);
+                System.out.printf("Olá, %s%s%s!\n\n", Colors.ANSI_CYAN, user.getName(), Colors.ANSI_RESET);
 //                System.out.println("1) Consultar dados\n2) Alterar senha\n" + Colors.ANSI_RED + "3) Excluir conta[TODO]" + Colors.ANSI_RESET + "\n\n0) Sair\n");
                 System.out.println("1) Gerenciamento de perguntas\n2) Consultar/responder perguntas\n3) Notificações: \n\n0) Sair\n");
                 System.out.print("Opção: ");
@@ -83,11 +99,11 @@ public class Main {
 
                 switch(option) {
                     case 1:
-                        questionsMenu(user, questionDatabase, relUserQuestions, keywordsDatabase);
+                        questionsMenu();
                         break;
 
                     case 2:
-                        searchQuestions(userDatabase, questionDatabase, relUserQuestions, keywordsDatabase);
+                        searchQuestions();
                         break;
 //                    ~~ PERFIL ~~
 //                    case 1:
@@ -114,14 +130,14 @@ public class Main {
         }
     }
 
-    public static Usuario login(CRUD<Usuario> userDatabase) throws Exception {
+    public static Usuario login() throws Exception {
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nLOGIN\n");
         System.out.print("Email: ");
         String email = input.readLine();
         System.out.print("Senha: ");
         String password = input.readLine();
 
-        Usuario tmpUser = userDatabase.read(email);
+        Usuario tmpUser = usersDatabase.read(email);
         if(tmpUser == null) {
             System.out.println(Colors.ANSI_RED + "\nEmail não cadastrado!\n" + Colors.ANSI_RESET);
             return null;
@@ -135,7 +151,7 @@ public class Main {
         return tmpUser;
     }
 
-    public static void changePassword(CRUD<Usuario> userDatabase, Usuario user) throws Exception {
+    public static void changePassword(Usuario user) throws Exception {
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PERFIL > TROCAR SENHA\n");
         System.out.print("Senha atual: ");
         String currentPassword = input.readLine();
@@ -159,11 +175,11 @@ public class Main {
         }
 
         user.setPassword(newPassword);
-        userDatabase.update(user);
+        usersDatabase.update(user);
         System.out.println(Colors.ANSI_GREEN + "\nSenha alterada com sucesso!\n" + Colors.ANSI_RESET);
     }
 
-    public static void signup(CRUD<Usuario> userDatabase) throws Exception {
+    public static void signup() throws Exception {
         String email;
         Usuario tmpUser;
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nCADASTRO\n");
@@ -171,7 +187,7 @@ public class Main {
         do {
             System.out.print("Insira seu email: ");
             email = input.readLine();
-            tmpUser = userDatabase.read(email);
+            tmpUser = usersDatabase.read(email);
             if (tmpUser != null) {
                 System.out.println(Colors.ANSI_RED + "\nUsuário já cadastrado, tente outro email!\n" + Colors.ANSI_RESET);
                 sleep();
@@ -184,7 +200,7 @@ public class Main {
         String password = Encrypt.getPassword(input.readLine());
 
         try {
-            userDatabase.create(new Usuario(name, email, password));
+            usersDatabase.create(new Usuario(name, email, password));
         } catch(Exception e) {
             System.out.println(Colors.ANSI_RED + "\nFalha ao cadastrar usuário!\n" + Colors.ANSI_RESET);
             e.printStackTrace();
@@ -195,11 +211,11 @@ public class Main {
         sleep();
     }
 
-    public static void passwordRecovery(CRUD<Usuario> userDatabase) throws Exception {
+    public static void passwordRecovery() throws Exception {
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nRECUPERAÇÃO DE SENHA\n");
         System.out.print("Email: ");
         String email = input.readLine();
-        Usuario tmpUser = userDatabase.read(email);
+        Usuario tmpUser = usersDatabase.read(email);
         if (tmpUser == null) {
             System.out.println(Colors.ANSI_RED + "\nEmail não cadastrado!\n" + Colors.ANSI_RESET);
             sleep();
@@ -208,7 +224,7 @@ public class Main {
 
         String tmpPassword = Encrypt.getPassword(UUID.randomUUID().toString().substring(0, 8));
         tmpUser.setPassword(tmpPassword);
-        userDatabase.update(tmpUser);
+        usersDatabase.update(tmpUser);
 
         FileOutputStream tmpFile = new FileOutputStream("recuperacao.txt");
         String template = String.format("Olá %s, você solicitou alteração de senha e aqui está sua senha temporária!\n" +
@@ -222,7 +238,7 @@ public class Main {
 //        return;
     }
 
-    public static void questionsMenu(Usuario user, CRUD<Pergunta> questionDatabase, ArvoreBMais_Int_Int relationship, ListaInvertida keywordsDatabase) throws Exception {
+    public static void questionsMenu() throws Exception {
         while(true) {
             System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > GERENCIAMENTO DE PERGUNTAS\n");
             System.out.println("1) Listar\n2) Criar\n3) Alterar\n4) Arquivar \n\n0) Retornar\n");
@@ -235,19 +251,19 @@ public class Main {
 
             switch(option) {
                 case 1:
-                    listQuestions(questionDatabase, relationship, user);
+                    listQuestions();
                     break;
 
                 case 2:
-                    createQuestion(questionDatabase, relationship, keywordsDatabase, user);
+                    createQuestion();
                     break;
 
                 case 3:
-                    updateQuestion(questionDatabase, relationship, keywordsDatabase, user);
+                    updateQuestion();
                     break;
 
                 case 4:
-                    archiveQuestion(questionDatabase, relationship, keywordsDatabase, user);
+                    archiveQuestion();
                     break;
             }
         }
@@ -257,11 +273,11 @@ public class Main {
         return Normalizer.normalize(keywords, Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "").toLowerCase();
     }
 
-    private static void listQuestions(CRUD<Pergunta> questionDatabase, ArvoreBMais_Int_Int relationship, Usuario user) throws Exception {
+    private static void listQuestions() throws Exception {
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > GERENCIAMENTO DE PERGUNTAS > MINHAS PERGUNTAS\n");
-        int[] questionsIDs = relationship.read(user.getID());
+        int[] questionsIDs = relUserQuestions.read(user.getID());
         for(int questionID : questionsIDs) {
-            Pergunta question = questionDatabase.read(questionID);
+            Pergunta question = questionsDatabase.read(questionID);
             System.out.printf("%d. %s\n", questionID, (question.getStatus() ? "" : "(Arquivada)"));
             System.out.println(question.getFormattedDate());
             System.out.printf("Palavras chave: %s\n", question.getKeywords());
@@ -272,7 +288,7 @@ public class Main {
         sleep(questionsIDs.length * 1.5);
     }
 
-    private static void createQuestion(CRUD<Pergunta> questionDatabase, ArvoreBMais_Int_Int relationship, ListaInvertida keywordsDatabase, Usuario user) throws Exception {
+    private static void createQuestion() throws Exception {
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > GERENCIAMENTO DE PERGUNTAS > CRIAÇÂO DE PERGUNTAS\n");
         System.out.print("Insira sua pergunta: ");
         String questionText = input.readLine();
@@ -292,7 +308,7 @@ public class Main {
         }
 
         System.out.print("Confirmar criação da pergunta?[Y/n]: ");
-        String confirm = input.readLine();
+        String confirm = input.readLine().toLowerCase();
         if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
             System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
             sleep();
@@ -302,11 +318,11 @@ public class Main {
         System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
 
         Pergunta question = new Pergunta(user.getID(), questionText, keywords);
-        int ID = questionDatabase.create(question);
-        boolean ok = relationship.create(user.getID(), ID);
+        int ID = questionsDatabase.create(question);
+        boolean ok = relUserQuestions.create(user.getID(), ID);
         if(!ok) {
-            relationship.delete(user.getID(), ID);
-            questionDatabase.delete(ID);
+            relUserQuestions.delete(user.getID(), ID);
+            questionsDatabase.delete(ID);
             System.out.println(Colors.ANSI_RED + "\nNão foi possível criar a pergunta!\n" + Colors.ANSI_RESET);
             sleep();
             return;
@@ -316,8 +332,8 @@ public class Main {
             ok = keywordsDatabase.create(keyword, ID);
             if(!ok) {
                 keywordsDatabase.delete(keyword, ID);
-                relationship.delete(user.getID(), ID);
-                questionDatabase.delete(ID);
+                relUserQuestions.delete(user.getID(), ID);
+                questionsDatabase.delete(ID);
                 System.out.println(Colors.ANSI_RED + "\nNão foi possível criar a pergunta!\n" + Colors.ANSI_RESET);
                 sleep();
                 return;
@@ -328,11 +344,11 @@ public class Main {
         sleep();
     }
 
-    private static void updateQuestion(CRUD<Pergunta> questionDatabase, ArvoreBMais_Int_Int relationship, ListaInvertida keywordsDatabase, Usuario user) throws Exception {
+    private static void updateQuestion() throws Exception {
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > GERENCIAMENTO DE PERGUNTAS > ALTERAÇÃO DE PERGUNTAS\n");
-        int[] questionsIDs = relationship.read(user.getID());
+        int[] questionsIDs = relUserQuestions.read(user.getID());
         for(int questionID : questionsIDs) {
-            Pergunta question = questionDatabase.read(questionID);
+            Pergunta question = questionsDatabase.read(questionID);
             if(question.getStatus()) {
                 System.out.printf("%d.\n", questionID);
                 System.out.println(question.getFormattedDate());
@@ -349,7 +365,7 @@ public class Main {
             return;
         }
 
-        Pergunta question = questionDatabase.read(ID);
+        Pergunta question = questionsDatabase.read(ID);
         if(question.getStatus()) {
             System.out.printf("%d.\n", ID);
             System.out.println(question.getFormattedDate());
@@ -374,7 +390,7 @@ public class Main {
             }
 
             System.out.print("Confirmar alteração da pergunta?[Y/n]: ");
-            String confirm = input.readLine();
+            String confirm = input.readLine().toLowerCase();
             if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
                 System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
                 sleep();
@@ -403,17 +419,17 @@ public class Main {
             System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
             question.setQuestion(newQuestionText);
             question.setKeywords(newKeywords);
-            questionDatabase.update(question);
+            questionsDatabase.update(question);
             System.out.println(Colors.ANSI_GREEN + "Pergunta alterada!" + Colors.ANSI_RESET);
             sleep();
         }
     }
 
-    private static void archiveQuestion(CRUD<Pergunta> questionDatabase, ArvoreBMais_Int_Int relationship, ListaInvertida keywordsDatabase, Usuario user) throws Exception {
+    private static void archiveQuestion() throws Exception {
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > GERENCIAMENTO DE PERGUNTAS > ARQUIVAR PERGUNTAS\n");
-        int[] questionsIDs = relationship.read(user.getID());
+        int[] questionsIDs = relUserQuestions.read(user.getID());
         for(int questionID : questionsIDs) {
-            Pergunta question = questionDatabase.read(questionID);
+            Pergunta question = questionsDatabase.read(questionID);
             if(question.getStatus()) {
                 System.out.printf("%d.\n", questionID);
                 System.out.println(question.getFormattedDate());
@@ -430,7 +446,7 @@ public class Main {
             return;
         }
 
-        Pergunta question = questionDatabase.read(ID);
+        Pergunta question = questionsDatabase.read(ID);
         if(question.getStatus()) {
             System.out.printf("%d.\n", ID);
             System.out.println(question.getFormattedDate());
@@ -438,7 +454,7 @@ public class Main {
             System.out.printf("%s\n\n", question.getQuestion());
 
             System.out.print("Confirmar arquivamento da pergunta? Essa ação não pode ser revertida![Y/n]: ");
-            String confirm = input.readLine();
+            String confirm = input.readLine().toLowerCase();
             if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
                 System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
                 sleep();
@@ -454,7 +470,7 @@ public class Main {
             }
 
             question.setKeywords("");
-            boolean ok = questionDatabase.update(question);
+            boolean ok = questionsDatabase.update(question);
             if(!ok) {
                 System.out.println(Colors.ANSI_RED + "A pergunta não pôde ser arquivada!" + Colors.ANSI_RESET);
                 sleep();
@@ -466,7 +482,7 @@ public class Main {
         }
     }
 
-    private static void searchQuestions(CRUD<Usuario> userDatabase, CRUD<Pergunta> questionDatabase, ArvoreBMais_Int_Int relationship, ListaInvertida keywordsDatabase) throws Exception {
+    private static void searchQuestions() throws Exception {
         System.out.println("\n\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS\n");
         System.out.println("Busque perguntas por palavras chave separadas por espaço");
         System.out.print("Insira as palavras chave: ");
@@ -482,10 +498,10 @@ public class Main {
             }
         }
 
-        List<Pergunta> allQuestions = new ArrayList<Pergunta>();
+        List<Pergunta> allQuestions = new ArrayList<>();
         for(int questionID : allIDs) {
             if(questionID != 0) {
-                Pergunta question = questionDatabase.read(questionID);
+                Pergunta question = questionsDatabase.read(questionID);
                 if(question.getStatus()) {
                     allQuestions.add(question);
                 }
@@ -509,7 +525,7 @@ public class Main {
                 return;
             }
 
-            detailQuestion(userDatabase, questionDatabase, relationship, ID);
+            detailQuestion(ID);
         } else {
             System.out.println(Colors.ANSI_RED + "Sem perguntas!" + Colors.ANSI_RESET);
             sleep();
@@ -517,32 +533,280 @@ public class Main {
     }
 
     private static void questionBox(String question) {
-        String separator = "+";
-        for(int i = 0; i < question.length() + 2; i++) {
-            separator += "-";
-        }
+        StringBuilder separator = new StringBuilder("+");
+        separator.append("-".repeat(Math.max(0, question.length() + 2)));
 
-        separator += "+";
-        System.out.printf("%s\n| %s |\n%s\n", separator, question, separator);
+        separator.append("+");
+        System.out.printf("%s\n| %s |\n%s\n", separator.toString(), question, separator.toString());
     }
 
-    private static void detailQuestion(CRUD<Usuario> userDatabase, CRUD<Pergunta> questionDatabase, ArvoreBMais_Int_Int relationship, int ID) throws Exception {
-        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PERGUNTA\n");
+    private static void detailQuestion(int ID) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA\n");
 
-        Pergunta question = questionDatabase.read(ID);
+        Pergunta question = questionsDatabase.read(ID);
         questionBox(question.getQuestion());
-        System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), userDatabase.read(question.getUserID()).getName());
+        System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), usersDatabase.read(question.getUserID()).getName());
         System.out.printf("Palavras chave: %s\n", question.getKeywords());
         System.out.printf("Nota: %d\n", question.getRating());
 
         System.out.println("\nCOMENTÁRIOS\n-----------");
+        // TODO: Comentários
         System.out.println("\nRESPOSTAS\n---------");
+        listQuestionAnswers(question);
 
-        System.out.println("\n1) Responder\n2) Comentar\n3) Avaliar\n\n0) Retornar\n");
+        System.out.println("\n1) Gerenciamento de respostas\n2) Gerenciamento de comentários\n3) Avaliar\n\n0) Retornar\n");
         System.out.print("Opção: ");
         int option = Integer.parseInt(input.readLine());
         if(option == 0) {
             return;
+        }
+
+        switch(option) {
+            case 1:
+                answersMenu(question);
+                break;
+        }
+    }
+
+    private static void listQuestionAnswers(Pergunta question) throws Exception {
+        int[] IDs = relQuestionAnswers.read(question.getID());
+        int count = 1;
+        for(int ID : IDs) {
+            Resposta answer = answersDatabase.read(ID);
+            System.out.printf("%d.\n", count++);
+            System.out.printf("%s\n", answer.getAnswer());
+            System.out.printf("Respondido em %s por %s\n", answer.getHumanizedDate(), usersDatabase.read(answer.getUserID()).getName());
+            System.out.printf("%d\n\n", answer.getRating());
+        }
+    }
+
+    private static void answersMenu(Pergunta question) throws Exception {
+        while(true) {
+            System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > GERENCIAMENTO DE RESPOSTAS\n");
+            questionBox(question.getQuestion());
+            System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), usersDatabase.read(question.getUserID()).getName());
+            System.out.printf("Palavras chave: %s\n", question.getKeywords());
+            System.out.printf("Nota: %d\n", question.getRating());
+
+            System.out.println("\n1) Listar\n2) Criar\n3) Alterar\n4) Arquivar \n\n0) Retornar\n");
+            System.out.print("Opção: ");
+
+            int option = Integer.parseInt(input.readLine());
+            if (option == 0) {
+                break;
+            }
+
+            switch(option) {
+                case 1:
+                    listAnswers(question);
+                    break;
+
+                case 2:
+                    createAnswer(question);
+                    break;
+
+                case 3:
+                    updateAnswer(question);
+                    break;
+
+                case 4:
+                    archiveAnswer(question);
+                    break;
+            }
+        }
+    }
+
+    private static void listAnswers(Pergunta question) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > GERENCIAMENTO DE RESPOSTAS > MINHAS RESPOSTAS\n");
+        int[] questionAnswersIDs = relQuestionAnswers.read(question.getID());
+        int[] userAnswersIDs = relUserAnswers.read(user.getID());
+
+        List<Integer> IDs = new ArrayList<>();
+        for(int answerID : questionAnswersIDs) {
+            if(Arrays.stream(userAnswersIDs).anyMatch(i -> i == answerID)) {
+                IDs.add(answerID);
+            }
+        }
+
+        int count = 1;
+        for(int ID : IDs) {
+            Resposta answer = answersDatabase.read(ID);
+            System.out.printf("%d. %s\n", count++, (answer.getStatus() ? "" : "(Arquivada)"));
+            System.out.println(answer.getFormattedDate());
+            System.out.printf("%s\n", answer.getAnswer());
+            System.out.printf("%d\n\n", answer.getRating());
+        }
+
+        sleep(IDs.size() * 1.5);
+    }
+
+    private static void createAnswer(Pergunta question) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > GERENCIAMENTO DE RESPOSTAS > CRIAÇÃO DE RESPOSTAS\n");
+        System.out.print("Insira sua resposta: ");
+        String answerText = input.readLine();
+        if(answerText.length() == 0) {
+            System.out.println(Colors.ANSI_RED + "\nO texto da resposta não pode ser vazio!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        System.out.print("Confirmar criação da resposta?[Y/n]: ");
+        String confirm = input.readLine().toLowerCase();
+        if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
+            System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
+
+        Resposta answer = new Resposta(user.getID(), question.getID(), answerText);
+        int ID = answersDatabase.create(answer);
+        boolean ok = relUserAnswers.create(user.getID(), ID);
+        if(!ok) {
+            relUserAnswers.delete(user.getID(), ID);
+            answersDatabase.delete(ID);
+            System.out.println(Colors.ANSI_RED + "\nNão foi possível criar a resposta!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        ok = relQuestionAnswers.create(question.getID(), ID);
+        if(!ok) {
+            relQuestionAnswers.delete(question.getID(), ID);
+            relUserAnswers.delete(user.getID(), ID);
+            answersDatabase.delete(ID);
+            System.out.println(Colors.ANSI_RED + "\nNão foi possível criar a resposta!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        System.out.println(Colors.ANSI_GREEN + "Pergunta criada!" + Colors.ANSI_RESET);
+        sleep();
+    }
+
+    private static void updateAnswer(Pergunta question) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > GERENCIAMENTO DE RESPOSTAS > ALTERAÇÃO DE RESPOSTA\n");
+        int[] questionAnswersIDs = relQuestionAnswers.read(question.getID());
+        int[] userAnswersIDs = relUserAnswers.read(user.getID());
+
+        List<Integer> IDs = new ArrayList<>();
+        for(int answerID : questionAnswersIDs) {
+            if(Arrays.stream(userAnswersIDs).anyMatch(i -> i == answerID)) {
+                IDs.add(answerID);
+            }
+        }
+
+        for(int ID : IDs) {
+            Resposta answer = answersDatabase.read(ID);
+            if(answer.getStatus()) {
+                System.out.printf("%d.\n", ID);
+                System.out.println(answer.getFormattedDate());
+                System.out.printf("%s\n", answer.getAnswer());
+                System.out.printf("%d\n\n", answer.getRating());
+            }
+        }
+
+        System.out.println("0) Retornar\n");
+        System.out.print("Insira o ID: ");
+        int ID = Integer.parseInt(input.readLine());
+        if(ID == 0) {
+            return;
+        }
+
+        Resposta answer = answersDatabase.read(ID);
+        if(answer.getStatus()) {
+            System.out.printf("%d.\n", ID);
+            System.out.println(answer.getFormattedDate());
+            System.out.printf("%s\n\n", answer.getAnswer());
+            System.out.printf("%d\n\n", answer.getRating());
+
+            System.out.print("Insira a nova resposta: ");
+            String newAnswerText = input.readLine();
+            if(newAnswerText.length() == 0) {
+                System.out.println(Colors.ANSI_RED + "\nO texto da resposta não pode ser vazio!\n" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            System.out.print("Confirmar alteração da resposta?[Y/n]: ");
+            String confirm = input.readLine().toLowerCase();
+            if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
+                System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
+            answer.setAnswer(newAnswerText);
+            answersDatabase.update(answer);
+            System.out.println(Colors.ANSI_GREEN + "Resposta alterada!" + Colors.ANSI_RESET);
+            sleep();
+        }
+    }
+
+    private static void archiveAnswer(Pergunta question) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > GERENCIAMENTO DE RESPOSTAS > ARQUIVAMENTO DE RESPOSTA\n");
+        int[] questionAnswersIDs = relQuestionAnswers.read(question.getID());
+        int[] userAnswersIDs = relUserAnswers.read(user.getID());
+
+        List<Integer> IDs = new ArrayList<>();
+        for(int answerID : questionAnswersIDs) {
+            if(Arrays.stream(userAnswersIDs).anyMatch(i -> i == answerID)) {
+                IDs.add(answerID);
+            }
+        }
+
+        for(int ID : IDs) {
+            Resposta answer = answersDatabase.read(ID);
+            if(answer.getStatus()) {
+                System.out.printf("%d.\n", ID);
+                System.out.println(answer.getFormattedDate());
+                System.out.printf("%s\n", answer.getAnswer());
+                System.out.printf("%d\n\n", answer.getRating());
+            }
+        }
+
+        System.out.println("0) Retornar\n");
+        System.out.print("Insira o ID: ");
+        int ID = Integer.parseInt(input.readLine());
+        if(ID == 0) {
+            return;
+        }
+
+        Resposta answer = answersDatabase.read(ID);
+        if(answer.getStatus()) {
+            System.out.printf("%d.\n", ID);
+            System.out.println(answer.getFormattedDate());
+            System.out.printf("%s\n\n", answer.getAnswer());
+
+            System.out.print("Confirmar arquivamento da resposta? Essa ação não pode ser revertida![Y/n]: ");
+            String confirm = input.readLine().toLowerCase();
+            if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
+                System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
+            answer.setStatus(false);
+
+            boolean ok = answersDatabase.update(answer);
+            if(!ok) {
+                System.out.println(Colors.ANSI_RED + "A resposta não pôde ser arquivada!" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            ok = relQuestionAnswers.delete(question.getID(), ID) && relUserAnswers.delete(user.getID(), ID);
+            if(!ok) {
+                System.out.println(Colors.ANSI_RED + "A resposta não pôde ser arquivada!" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            System.out.println(Colors.ANSI_GREEN + "Resposta arquivada!" + Colors.ANSI_RESET);
+            sleep();
         }
     }
 
