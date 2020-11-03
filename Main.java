@@ -507,27 +507,29 @@ public class Main {
             }
         }
 
-        if(!allQuestions.isEmpty()) {
-            allQuestions.sort((question2, question1) -> Short.compare(question1.getRating(), question2.getRating()));
+        while(true) {
+            if (!allQuestions.isEmpty()) {
+                allQuestions.sort((question2, question1) -> Short.compare(question1.getRating(), question2.getRating()));
 
-            for(Pergunta question : allQuestions) {
-                System.out.printf("\n%d. \n", question.getID());
-                System.out.println(question.getFormattedDate());
-                System.out.printf("%s\n", question.getQuestion());
-                System.out.printf("%d\n", question.getRating());
+                for (Pergunta question : allQuestions) {
+                    System.out.printf("\n%d. \n", question.getID());
+                    System.out.println(question.getFormattedDate());
+                    System.out.printf("%s\n", question.getQuestion());
+                    System.out.printf("%d\n", question.getRating());
+                }
+
+                System.out.println("\n0) Retornar\n");
+                System.out.print("Insira o ID: ");
+                int ID = Integer.parseInt(input.readLine());
+                if (ID == 0) {
+                    break;
+                }
+
+                detailQuestion(ID);
+            } else {
+                System.out.println(Colors.ANSI_RED + "Sem perguntas!" + Colors.ANSI_RESET);
+                sleep();
             }
-
-            System.out.println("\n0) Retornar\n");
-            System.out.print("Insira o ID: ");
-            int ID = Integer.parseInt(input.readLine());
-            if(ID == 0) {
-                return;
-            }
-
-            detailQuestion(ID);
-        } else {
-            System.out.println(Colors.ANSI_RED + "Sem perguntas!" + Colors.ANSI_RESET);
-            sleep();
         }
     }
 
@@ -880,7 +882,7 @@ public class Main {
             return;
         }
 
-        System.out.println(Colors.ANSI_RED + "\nVocê não pdoe votar na sua pergunta!\n" + Colors.ANSI_RESET);
+        System.out.println(Colors.ANSI_RED + "\nVocê não pode votar na sua pergunta!\n" + Colors.ANSI_RESET);
         sleep();
     }
 
@@ -904,34 +906,40 @@ public class Main {
         }
 
         Resposta answer = answersDatabase.read(ID);
-        Voto rating = votesDatabase.read(user.getID() + "|" + (byte)'R' + "|" + answer.getID());
-        if(rating != null) {
-            System.out.println(Colors.ANSI_RED + "\nVocê já votou nessa resposta!\n" + Colors.ANSI_RESET);
-            sleep();
+        if(answer.getUserID() != user.getID()) {
+            Voto rating = votesDatabase.read(user.getID() + "|" + (byte) 'R' + "|" + answer.getID());
+            if (rating != null) {
+                System.out.println(Colors.ANSI_RED + "\nVocê já votou nessa resposta!\n" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            int inputVote;
+            do {
+                System.out.print("\n1) Upvote\n2) Downvote\n\nInsira o voto: ");
+                inputVote = Integer.parseInt(input.readLine());
+            } while (inputVote != 1 && inputVote != 2);
+
+            boolean vote = (inputVote == 1);
+
+            System.out.print("Confirmar voto?[Y/n]: ");
+            String confirm = input.readLine().toLowerCase();
+            if (confirm.length() > 0 && confirm.charAt(0) == 'n') {
+                System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
+            rating = new Voto(user.getID(), answer.getID(), (byte) 'R', vote);
+            votesDatabase.create(rating);
+            answer.updateRating(vote);
+            answersDatabase.update(answer);
             return;
         }
 
-        int inputVote;
-        do {
-            System.out.print("\n1) Upvote\n2) Downvote\n\nInsira o voto: ");
-            inputVote = Integer.parseInt(input.readLine());
-        } while (inputVote != 1 && inputVote != 2);
-
-        boolean vote = (inputVote == 1);
-
-        System.out.print("Confirmar voto?[Y/n]: ");
-        String confirm = input.readLine().toLowerCase();
-        if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
-            System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
-            sleep();
-            return;
-        }
-
-        System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
-        rating = new Voto(user.getID(), answer.getID(), (byte)'R', vote);
-        votesDatabase.create(rating);
-        answer.updateRating(vote);
-        answersDatabase.update(answer);
+        System.out.println(Colors.ANSI_RED + "\nVocê não pode votar na sua resposta!\n" + Colors.ANSI_RESET);
+        sleep();
     }
 
     public static void sleep() {
