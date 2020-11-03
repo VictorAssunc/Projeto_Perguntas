@@ -1,9 +1,9 @@
 import java.io.*;
 import java.lang.reflect.Constructor;
 
-import aed3.ArvoreBMais_Int_Int;
 import aed3.ArvoreBMais_String_Int;
 import aed3.HashExtensivel;
+import entity.Registro;
 
 public class CRUD<T extends Registro> {
     public static final String __author__ = "Texugo";

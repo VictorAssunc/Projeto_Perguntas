@@ -28,14 +28,14 @@
 //        // PRÉ-TESTE
 //        SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy");
 //        Date date = format.parse("24/08/1975");
-//        Usuario user1 = new Usuario(-1, "batatinha", "senhaforte", "Ludosvaldo", "lulu.dosvaldo@gmail.com", date);
+//        entity.Usuario user1 = new entity.Usuario(-1, "batatinha", "senhaforte", "Ludosvaldo", "lulu.dosvaldo@gmail.com", date);
 //        date = format.parse("12/05/1987");
-//        Usuario user2 = new Usuario(-1, "coxinha", "senhaultraforte", "Irineu", "iri.neu@gmail.com", date);
+//        entity.Usuario user2 = new entity.Usuario(-1, "coxinha", "senhaultraforte", "Irineu", "iri.neu@gmail.com", date);
 //        date = format.parse("06/02/200");
-//        Usuario user3 = new Usuario(-1, "sucrilhos", "senhafraca", "Clodovil", "clo.dovilo@gmail.com", date);
+//        entity.Usuario user3 = new entity.Usuario(-1, "sucrilhos", "senhafraca", "Clodovil", "clo.dovilo@gmail.com", date);
 //
 //        Runtime.getRuntime().exec("rm -rf testdata/");
-//        CRUD<Usuario> database = new CRUD<>(Usuario.class.getConstructor(), "users");
+//        CRUD<entity.Usuario> database = new CRUD<>(entity.Usuario.class.getConstructor(), "users");
 //
 //
 //        // TESTES

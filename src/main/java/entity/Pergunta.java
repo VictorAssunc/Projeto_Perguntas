@@ -1,34 +1,40 @@
+package entity;
+
+import colors.Colors;
+
 import java.io.*;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
-public class Resposta implements Registro {
+public class Pergunta implements Registro {
     public static final String __author__ = "Texugo";
 
-    private int ID, userID, questionID;
+    private int ID, userID;
     private long createdAt;
     private short rating;
-    private String answer;
+    private String question;
     private boolean status;
+    private String keywords;
 
-    public Resposta() {
+    public Pergunta() {
         this.ID = -1;
         this.userID = -1;
-        this.questionID = -1;
         this.createdAt = 0;
         this.rating = 0;
-        this.answer = "";
+        this.question = "";
         this.status = true;
+        this.keywords = "";
     }
 
-    public Resposta(int userID, int questionID, String answer) {
+    public Pergunta(int userID, String question, String keywords) {
         this.ID = -1;
         this.userID = userID;
-        this.questionID = questionID;
         this.createdAt = System.currentTimeMillis();
         this.rating = 0;
-        this.answer = answer;
+        this.question = question;
         this.status = true;
+        this.keywords = keywords;
     }
 
     public void setID(int ID) {
@@ -37,15 +43,17 @@ public class Resposta implements Registro {
 
     public void setUserID(int userID) { this.userID = userID; }
 
-    public void setQuestionID(int questionID) { this.questionID = questionID; }
-
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 
-    public void setAnswer(String answer) { this.answer = answer; }
+    public void setQuestion(String question) { this.question = question; }
 
     public void setRating(short rating) { this.rating = rating; }
 
+    public void updateRating(boolean vote) { if(vote) { this.rating++; } else { this.rating--; } }
+
     public void setStatus(boolean status) { this.status = status; }
+
+    public void setKeywords(String keywords) { this.keywords = keywords; }
 
     public int getID() {
         return this.ID;
@@ -53,24 +61,39 @@ public class Resposta implements Registro {
 
     public int getUserID() { return this.userID; }
 
-    public int getQuestionID() { return this.questionID; }
-
     public long getCreatedAt() { return this.createdAt; }
 
-    public String getAnswer() { return this.answer; }
+    public String getQuestion() { return this.question; }
 
     public short getRating() { return this.rating; }
 
+    public String getHumanizedRating() {
+        String color = Colors.ANSI_YELLOW;
+        String icon = "●";
+
+        if(this.rating > 0) {
+            color = Colors.ANSI_GREEN;
+            icon = "▲";
+        } else if(this.rating < 0) {
+            color = Colors.ANSI_RED;
+            icon = "▼";
+        }
+
+        return color + this.rating + " " + icon + Colors.ANSI_RESET;
+    }
+
     public boolean getStatus() { return this.status; }
 
+    public String getKeywords() { return this.keywords; }
+
     public String getFormattedDate() {
-        SimpleDateFormat formatter= new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+        SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
         Date createdAt = new Date(this.createdAt);
         return formatter.format(createdAt);
     }
 
     public String getHumanizedDate() {
-        SimpleDateFormat formatter= new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm");
+        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm");
         Date createdAt = new Date(this.createdAt);
         return formatter.format(createdAt);
     }
@@ -85,11 +108,11 @@ public class Resposta implements Registro {
 
         dataOutputStream.writeInt(this.ID);
         dataOutputStream.writeInt(this.userID);
-        dataOutputStream.writeInt(this.questionID);
         dataOutputStream.writeLong(this.createdAt);
         dataOutputStream.writeShort(this.rating);
-        dataOutputStream.writeUTF(this.answer);
+        dataOutputStream.writeUTF(this.question);
         dataOutputStream.writeBoolean(this.status);
+        dataOutputStream.writeUTF(this.keywords);
 
         return byteArrayOutputStream.toByteArray();
     }
@@ -100,25 +123,25 @@ public class Resposta implements Registro {
 
         this.ID = dataInputStream.readInt();
         this.userID = dataInputStream.readInt();
-        this.questionID = dataInputStream.readInt();
         this.createdAt = dataInputStream.readLong();
         this.rating = dataInputStream.readShort();
-        this.answer = dataInputStream.readUTF();
+        this.question = dataInputStream.readUTF();
         this.status = dataInputStream.readBoolean();
+        this.keywords = dataInputStream.readUTF();
     }
 
     @Override
     public String toString() {
         SimpleDateFormat formatter= new SimpleDateFormat("dd-MM-yyyy HH:mm:ss z");
         Date createdAt = new Date(this.createdAt);
-        return "Resposta{" +
+        return "entity.Pergunta{" +
                 "ID=" + this.ID +
                 ", userID=" + this.userID +
-                ", questionID=" + this.questionID +
                 ", createdAt=" + formatter.format(createdAt) +
                 ", rating=" + this.rating +
-                ", answer='" + this.answer + '\'' +
+                ", question='" + this.question + '\'' +
                 ", status=" + this.status +
+                ", keywords='" + this.keywords + '\'' +
                 '}';
     }
 }

@@ -1,3 +1,5 @@
+package entity;
+
 import java.io.*;
 import java.util.Date;
 
@@ -113,7 +115,7 @@ public class Usuario implements Registro {
     }
 
     public String toString() {
-        return "Usuario{" +
+        return "entity.Usuario{" +
                 "ID=" + this.ID +
 //                ", user='" + user + '\'' +
                 ", password='" + this.password + '\'' +

@@ -1,5 +1,10 @@
 import aed3.ArvoreBMais_Int_Int;
 import aed3.ListaInvertida;
+import colors.Colors;
+import entity.Pergunta;
+import entity.Resposta;
+import entity.Usuario;
+import entity.Voto;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -7,14 +12,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.Normalizer;
 import java.util.*;
-
-class Colors {
-    public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_RED = "\u001B[31m";
-    public static final String ANSI_GREEN = "\u001B[32m";
-    public static final String ANSI_YELLOW = "\u001B[33m";
-    public static final String ANSI_CYAN = "\u001B[36m";
-}
 
 class Encrypt {
     public static String getPassword(String password) throws NoSuchAlgorithmException {
@@ -41,6 +38,7 @@ public class Main {
     static CRUD<Usuario> usersDatabase;
     static CRUD<Pergunta> questionsDatabase;
     static CRUD<Resposta> answersDatabase;
+    static CRUD<Voto> votesDatabase;
     static ListaInvertida keywordsDatabase;
     static ArvoreBMais_Int_Int relUserQuestions;
     static ArvoreBMais_Int_Int relUserAnswers;
@@ -51,6 +49,7 @@ public class Main {
         usersDatabase = new CRUD<>(Usuario.class.getConstructor(), "users");
         questionsDatabase = new CRUD<>(Pergunta.class.getConstructor(), "questions");
         answersDatabase = new CRUD<>(Resposta.class.getConstructor(), "answers");
+        votesDatabase = new CRUD<>(Voto.class.getConstructor(), "votes");
         keywordsDatabase = new ListaInvertida(5, "testdata/keywords_dictionary.db", "testdata/keywords_blocks.db");
 
         relUserQuestions = new ArvoreBMais_Int_Int(5, "testdata/relationship_user_questions.idx");
@@ -366,7 +365,7 @@ public class Main {
         }
 
         Pergunta question = questionsDatabase.read(ID);
-        if(question.getStatus()) {
+        if(question.getStatus() && question.getUserID() == user.getID()) {
             System.out.printf("%d.\n", ID);
             System.out.println(question.getFormattedDate());
             System.out.printf("%s\n", question.getQuestion());
@@ -447,7 +446,7 @@ public class Main {
         }
 
         Pergunta question = questionsDatabase.read(ID);
-        if(question.getStatus()) {
+        if(question.getStatus() && question.getUserID() == user.getID()) {
             System.out.printf("%d.\n", ID);
             System.out.println(question.getFormattedDate());
             System.out.printf("Palavras chave: %s\n", question.getKeywords());
@@ -544,40 +543,50 @@ public class Main {
         System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA\n");
 
         Pergunta question = questionsDatabase.read(ID);
-        questionBox(question.getQuestion());
-        System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), usersDatabase.read(question.getUserID()).getName());
-        System.out.printf("Palavras chave: %s\n", question.getKeywords());
-        System.out.printf("Nota: %d\n", question.getRating());
+        while(true) {
+            questionBox(question.getQuestion());
+            System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), (question.getUserID() == user.getID() ? "Você" : usersDatabase.read(question.getUserID()).getName()));
+            System.out.printf("Palavras chave: %s\n", question.getKeywords());
+            System.out.printf("Nota: %s\n", question.getHumanizedRating());
 
-        System.out.println("\nCOMENTÁRIOS\n-----------");
-        // TODO: Comentários
-        System.out.println("\nRESPOSTAS\n---------");
-        listQuestionAnswers(question);
+            System.out.println("\nCOMENTÁRIOS\n-----------");
+            // TODO: Comentários
+            System.out.println("\nRESPOSTAS\n---------");
+            List<Resposta> answers = listQuestionAnswers(question);
 
-        System.out.println("\n1) Gerenciamento de respostas\n2) Gerenciamento de comentários\n3) Avaliar\n\n0) Retornar\n");
-        System.out.print("Opção: ");
-        int option = Integer.parseInt(input.readLine());
-        if(option == 0) {
-            return;
-        }
+            System.out.println("\n1) Gerenciamento de respostas\n2) Gerenciamento de comentários\n3) Avaliar\n\n0) Retornar\n");
+            System.out.print("Opção: ");
+            int option = Integer.parseInt(input.readLine());
+            if(option == 0) {
+                return;
+            }
 
-        switch(option) {
-            case 1:
-                answersMenu(question);
-                break;
+            switch(option) {
+                case 1:
+                    answersMenu(question);
+                    break;
+
+                case 3:
+                    rate(question, answers);
+                    break;
+            }
         }
     }
 
-    private static void listQuestionAnswers(Pergunta question) throws Exception {
+    private static List<Resposta> listQuestionAnswers(Pergunta question) throws Exception {
         int[] IDs = relQuestionAnswers.read(question.getID());
+        List<Resposta> answers = new ArrayList<>();
         int count = 1;
         for(int ID : IDs) {
             Resposta answer = answersDatabase.read(ID);
+            answers.add(answer);
             System.out.printf("%d.\n", count++);
             System.out.printf("%s\n", answer.getAnswer());
-            System.out.printf("Respondido em %s por %s\n", answer.getHumanizedDate(), usersDatabase.read(answer.getUserID()).getName());
-            System.out.printf("%d\n\n", answer.getRating());
+            System.out.printf("Respondido em %s por %s\n", answer.getHumanizedDate(), (answer.getUserID() == user.getID() ? "Você" : usersDatabase.read(answer.getUserID()).getName()));
+            System.out.printf("Nota: %s\n\n", answer.getHumanizedRating());
         }
+
+        return answers;
     }
 
     private static void answersMenu(Pergunta question) throws Exception {
@@ -586,7 +595,7 @@ public class Main {
             questionBox(question.getQuestion());
             System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), usersDatabase.read(question.getUserID()).getName());
             System.out.printf("Palavras chave: %s\n", question.getKeywords());
-            System.out.printf("Nota: %d\n", question.getRating());
+            System.out.printf("Nota: %s\n", question.getHumanizedRating());
 
             System.out.println("\n1) Listar\n2) Criar\n3) Alterar\n4) Arquivar \n\n0) Retornar\n");
             System.out.print("Opção: ");
@@ -715,7 +724,7 @@ public class Main {
         }
 
         Resposta answer = answersDatabase.read(ID);
-        if(answer.getStatus()) {
+        if(answer.getStatus() && answer.getUserID() == user.getID()) {
             System.out.printf("%d.\n", ID);
             System.out.println(answer.getFormattedDate());
             System.out.printf("%s\n\n", answer.getAnswer());
@@ -775,7 +784,7 @@ public class Main {
         }
 
         Resposta answer = answersDatabase.read(ID);
-        if(answer.getStatus()) {
+        if(answer.getStatus() && answer.getUserID() == user.getID()) {
             System.out.printf("%d.\n", ID);
             System.out.println(answer.getFormattedDate());
             System.out.printf("%s\n\n", answer.getAnswer());
@@ -808,6 +817,121 @@ public class Main {
             System.out.println(Colors.ANSI_GREEN + "Resposta arquivada!" + Colors.ANSI_RESET);
             sleep();
         }
+    }
+
+    private static void rate(Pergunta question, List<Resposta> answers) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > AVALIAÇÃO\n");
+
+        System.out.println("1) Avaliar pergunta\n2) Avaliar resposta\n\n0) Retornar\n");
+        System.out.print("Opção: ");
+        int option = Integer.parseInt(input.readLine());
+        if(option == 0) {
+            return;
+        }
+
+        switch(option) {
+            case 1:
+                rateQuestion(question);
+                break;
+
+            case 2:
+                rateAnswer(answers);
+                break;
+        }
+    }
+
+    private static void rateQuestion(Pergunta question) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > AVALIAÇÃO > PERGUNTA\n");
+
+        if(question.getUserID() != user.getID()) {
+            questionBox(question.getQuestion());
+            System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), (question.getUserID() == user.getID() ? "Você" : usersDatabase.read(question.getUserID()).getName()));
+            System.out.printf("Palavras chave: %s\n", question.getKeywords());
+            System.out.printf("Nota: %s\n", question.getHumanizedRating());
+
+            Voto rating = votesDatabase.read(user.getID() + "|" + (byte) 'P' + "|" + question.getID());
+            if (rating != null) {
+                System.out.println(Colors.ANSI_RED + "\nVocê já votou nessa pergunta!\n" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            int inputVote;
+            do {
+                System.out.print("\n1) Upvote\n2) Downvote\n\nInsira o voto: ");
+                inputVote = Integer.parseInt(input.readLine());
+            } while (inputVote != 1 && inputVote != 2);
+
+            boolean vote = (inputVote == 1);
+
+            System.out.print("Confirmar voto?[Y/n]: ");
+            String confirm = input.readLine().toLowerCase();
+            if (confirm.length() > 0 && confirm.charAt(0) == 'n') {
+                System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
+                sleep();
+                return;
+            }
+
+            System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
+            rating = new Voto(user.getID(), question.getID(), (byte) 'R', vote);
+            votesDatabase.create(rating);
+            question.updateRating(vote);
+            questionsDatabase.update(question);
+            return;
+        }
+
+        System.out.println(Colors.ANSI_RED + "\nVocê não pdoe votar na sua pergunta!\n" + Colors.ANSI_RESET);
+        sleep();
+    }
+
+    private static void rateAnswer(List<Resposta> answers) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > AVALIAÇÃO > RESPOSTA\n");
+
+        for(Resposta answer : answers) {
+            if(answer.getUserID() != user.getID()) {
+                System.out.printf("%d.\n", answer.getID());
+                System.out.printf("%s\n", answer.getAnswer());
+                System.out.printf("Respondido em %s por %s\n", answer.getHumanizedDate(), (answer.getUserID() == user.getID() ? "Você" : usersDatabase.read(answer.getUserID()).getName()));
+                System.out.printf("Nota: %s\n\n", answer.getHumanizedRating());
+            }
+        }
+
+        System.out.println("0) Retornar\n");
+        System.out.print("Insira o ID: ");
+        int ID = Integer.parseInt(input.readLine());
+        if(ID == 0) {
+            return;
+        }
+
+        Resposta answer = answersDatabase.read(ID);
+        Voto rating = votesDatabase.read(user.getID() + "|" + (byte)'R' + "|" + answer.getID());
+        if(rating != null) {
+            System.out.println(Colors.ANSI_RED + "\nVocê já votou nessa resposta!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        int inputVote;
+        do {
+            System.out.print("\n1) Upvote\n2) Downvote\n\nInsira o voto: ");
+            inputVote = Integer.parseInt(input.readLine());
+        } while (inputVote != 1 && inputVote != 2);
+
+        boolean vote = (inputVote == 1);
+
+        System.out.print("Confirmar voto?[Y/n]: ");
+        String confirm = input.readLine().toLowerCase();
+        if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
+            System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
+        rating = new Voto(user.getID(), answer.getID(), (byte)'R', vote);
+        votesDatabase.create(rating);
+        answer.updateRating(vote);
+        answersDatabase.update(answer);
     }
 
     public static void sleep() {
