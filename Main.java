@@ -227,14 +227,15 @@ public class Main {
             return;
         }
 
-        String tmpPassword = Encrypt.getPassword(UUID.randomUUID().toString().substring(0, 8));
-        tmpUser.setPassword(tmpPassword);
+        String tmpPassword = UUID.randomUUID().toString().substring(0, 8);
+        String password = Encrypt.getPassword(tmpPassword);
+        tmpUser.setPassword(password);
         usersDatabase.update(tmpUser);
 
         FileOutputStream tmpFile = new FileOutputStream("recuperacao.txt");
         String template = String.format("Olá %s, você solicitou alteração de senha e aqui está sua senha temporária!\n" +
                 "Altere sua senha assim que fizer login!\n" +
-                "\nSENHA: %s", tmpUser.getName(), tmpUser.getPassword());
+                "\nSENHA: %s", tmpUser.getName(), tmpPassword);
         tmpFile.write(template.getBytes());
         tmpFile.close();
 
