@@ -13,9 +13,9 @@ public class Pergunta implements Registro {
     private int ID, userID;
     private long createdAt;
     private short rating;
-    private String question;
     private boolean status;
     private String keywords;
+    private String question;
 
     public Pergunta() {
         this.ID = -1;
