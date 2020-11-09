@@ -1,10 +1,7 @@
 import aed3.ArvoreBMais_Int_Int;
 import aed3.ListaInvertida;
 import colors.Colors;
-import entity.Pergunta;
-import entity.Resposta;
-import entity.Usuario;
-import entity.Voto;
+import entity.*;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -37,17 +34,20 @@ public class Main {
     static BufferedReader input = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
     static CRUD<Usuario> usersDatabase;
     static CRUD<Pergunta> questionsDatabase;
+    static CRUD<Comentario> commentsDatabase;
     static CRUD<Resposta> answersDatabase;
     static CRUD<Voto> votesDatabase;
     static ListaInvertida keywordsDatabase;
     static ArvoreBMais_Int_Int relUserQuestions;
     static ArvoreBMais_Int_Int relUserAnswers;
+    static ArvoreBMais_Int_Int relQuestionComments;
     static ArvoreBMais_Int_Int relQuestionAnswers;
-
+    static ArvoreBMais_Int_Int relAnswerComments;
 
     public static void main(String[] args) throws Exception {
         usersDatabase = new CRUD<>(Usuario.class.getConstructor(), "users");
         questionsDatabase = new CRUD<>(Pergunta.class.getConstructor(), "questions");
+        commentsDatabase = new CRUD<>(Comentario.class.getConstructor(), "comments");
         answersDatabase = new CRUD<>(Resposta.class.getConstructor(), "answers");
         votesDatabase = new CRUD<>(Voto.class.getConstructor(), "votes");
         keywordsDatabase = new ListaInvertida(5, "testdata/keywords_dictionary.db", "testdata/keywords_blocks.db");
@@ -58,8 +58,14 @@ public class Main {
         relUserAnswers = new ArvoreBMais_Int_Int(5, "testdata/relationship_user_answers.idx");
         if(relUserAnswers.empty()) { relUserAnswers.create(0, 0); }
 
+        relQuestionComments = new ArvoreBMais_Int_Int(5, "testdata/relationship_question_comments.idx");
+        if(relQuestionComments.empty()) { relQuestionComments.create(0, 0); }
+
         relQuestionAnswers = new ArvoreBMais_Int_Int(5, "testdata/relationship_question_answers.idx");
         if(relQuestionAnswers.empty()) { relQuestionAnswers.create(0, 0); }
+
+        relAnswerComments = new ArvoreBMais_Int_Int(5, "testdata/relationship_answer_comments.idx");
+        if(relAnswerComments.empty()) { relAnswerComments.create(0, 0); }
 
         while(true) {
             if(!logged) {
@@ -281,7 +287,7 @@ public class Main {
             System.out.println(question.getFormattedDate());
             System.out.printf("Palavras chave: %s\n", question.getKeywords());
             System.out.printf("%s\n", question.getQuestion());
-            System.out.printf("%d\n\n", question.getRating());
+            System.out.printf("%s\n\n", question.getHumanizedRating());
         }
 
         sleep(questionsIDs.length * 1.5);
@@ -353,7 +359,7 @@ public class Main {
                 System.out.println(question.getFormattedDate());
                 System.out.printf("Palavras chave: %s\n", question.getKeywords());
                 System.out.printf("%s\n", question.getQuestion());
-                System.out.printf("%d\n\n", question.getRating());
+                System.out.printf("%s\n\n", question.getHumanizedRating());
             }
         }
 
@@ -369,7 +375,7 @@ public class Main {
             System.out.printf("%d.\n", ID);
             System.out.println(question.getFormattedDate());
             System.out.printf("%s\n", question.getQuestion());
-            System.out.printf("%d\n\n", question.getRating());
+            System.out.printf("%s\n\n", question.getHumanizedRating());
 
             System.out.print("Insira a nova pergunta: ");
             String newQuestionText = input.readLine();
@@ -434,7 +440,7 @@ public class Main {
                 System.out.println(question.getFormattedDate());
                 System.out.printf("Palavras chave: %s\n", question.getKeywords());
                 System.out.printf("%s\n", question.getQuestion());
-                System.out.printf("%d\n\n", question.getRating());
+                System.out.printf("%s\n\n", question.getHumanizedRating());
             }
         }
 
@@ -515,7 +521,7 @@ public class Main {
                     System.out.printf("\n%d. \n", question.getID());
                     System.out.println(question.getFormattedDate());
                     System.out.printf("%s\n", question.getQuestion());
-                    System.out.printf("%d\n", question.getRating());
+                    System.out.printf("%s\n", question.getHumanizedRating());
                 }
 
                 System.out.println("\n0) Retornar\n");
@@ -533,12 +539,12 @@ public class Main {
         }
     }
 
-    private static void questionBox(String question) {
+    private static void textBox(String text) {
         StringBuilder separator = new StringBuilder("+");
-        separator.append("-".repeat(Math.max(0, question.length() + 2)));
+        separator.append("-".repeat(Math.max(0, text.length() + 2)));
 
         separator.append("+");
-        System.out.printf("%s\n| %s |\n%s\n", separator.toString(), question, separator.toString());
+        System.out.printf("%s\n| %s |\n%s\n", separator.toString(), text, separator.toString());
     }
 
     private static void detailQuestion(int ID) throws Exception {
@@ -546,17 +552,17 @@ public class Main {
 
         Pergunta question = questionsDatabase.read(ID);
         while(true) {
-            questionBox(question.getQuestion());
+            textBox(question.getQuestion());
             System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), (question.getUserID() == user.getID() ? "Você" : usersDatabase.read(question.getUserID()).getName()));
             System.out.printf("Palavras chave: %s\n", question.getKeywords());
             System.out.printf("Nota: %s\n", question.getHumanizedRating());
 
             System.out.println("\nCOMENTÁRIOS\n-----------");
-            // TODO: Comentários
-            System.out.println("\nRESPOSTAS\n---------");
+            List<Comentario> comments = listQuestionComments(question);
+            System.out.println("RESPOSTAS\n---------");
             List<Resposta> answers = listQuestionAnswers(question);
 
-            System.out.println("\n1) Gerenciamento de respostas\n2) Gerenciamento de comentários\n3) Avaliar\n\n0) Retornar\n");
+            System.out.println("\n1) Gerenciamento de respostas\n2) Comentar\n3) Avaliar\n\n0) Retornar\n");
             System.out.print("Opção: ");
             int option = Integer.parseInt(input.readLine());
             if(option == 0) {
@@ -568,11 +574,28 @@ public class Main {
                     answersMenu(question);
                     break;
 
+                case 2:
+                    comment(question, answers);
+                    break;
+
                 case 3:
                     rate(question, answers);
                     break;
             }
         }
+    }
+
+    private static List<Comentario> listQuestionComments(Pergunta question) throws Exception {
+        int[] IDs = relQuestionComments.read(question.getID());
+        List<Comentario> comments = new ArrayList<>();
+        for(int ID : IDs) {
+            Comentario comment = commentsDatabase.read(ID);
+            comments.add(comment);
+            System.out.printf("%s\n", comment.getComment());
+            System.out.printf("Comentário feito em %s por %s\n\n", comment.getHumanizedDate(), (comment.getUserID() == user.getID() ? "Você" : usersDatabase.read(comment.getUserID()).getName()));
+        }
+
+        return comments;
     }
 
     private static List<Resposta> listQuestionAnswers(Pergunta question) throws Exception {
@@ -586,15 +609,25 @@ public class Main {
             System.out.printf("%s\n", answer.getAnswer());
             System.out.printf("Respondido em %s por %s\n", answer.getHumanizedDate(), (answer.getUserID() == user.getID() ? "Você" : usersDatabase.read(answer.getUserID()).getName()));
             System.out.printf("Nota: %s\n\n", answer.getHumanizedRating());
+            listAnswerComments(answer);
         }
 
         return answers;
     }
 
+    private static void listAnswerComments(Resposta answer) throws Exception {
+        int[] IDs = relAnswerComments.read(answer.getID());
+        for(int ID : IDs) {
+            Comentario comment = commentsDatabase.read(ID);
+            System.out.printf("\t%s\n", comment.getComment());
+            System.out.printf("\tComentário feito em %s por %s\n\n", comment.getHumanizedDate(), (comment.getUserID() == user.getID() ? "Você" : usersDatabase.read(comment.getUserID()).getName()));
+        }
+    }
+
     private static void answersMenu(Pergunta question) throws Exception {
         while(true) {
             System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > GERENCIAMENTO DE RESPOSTAS\n");
-            questionBox(question.getQuestion());
+            textBox(question.getQuestion());
             System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), usersDatabase.read(question.getUserID()).getName());
             System.out.printf("Palavras chave: %s\n", question.getKeywords());
             System.out.printf("Nota: %s\n", question.getHumanizedRating());
@@ -645,7 +678,7 @@ public class Main {
             System.out.printf("%d. %s\n", count++, (answer.getStatus() ? "" : "(Arquivada)"));
             System.out.println(answer.getFormattedDate());
             System.out.printf("%s\n", answer.getAnswer());
-            System.out.printf("%d\n\n", answer.getRating());
+            System.out.printf("%s\n\n", answer.getHumanizedRating());
         }
 
         sleep(IDs.size() * 1.5);
@@ -714,7 +747,7 @@ public class Main {
                 System.out.printf("%d.\n", ID);
                 System.out.println(answer.getFormattedDate());
                 System.out.printf("%s\n", answer.getAnswer());
-                System.out.printf("%d\n\n", answer.getRating());
+                System.out.printf("%s\n\n", answer.getHumanizedRating());
             }
         }
 
@@ -730,7 +763,7 @@ public class Main {
             System.out.printf("%d.\n", ID);
             System.out.println(answer.getFormattedDate());
             System.out.printf("%s\n\n", answer.getAnswer());
-            System.out.printf("%d\n\n", answer.getRating());
+            System.out.printf("%s\n\n", answer.getHumanizedRating());
 
             System.out.print("Insira a nova resposta: ");
             String newAnswerText = input.readLine();
@@ -774,7 +807,7 @@ public class Main {
                 System.out.printf("%d.\n", ID);
                 System.out.println(answer.getFormattedDate());
                 System.out.printf("%s\n", answer.getAnswer());
-                System.out.printf("%d\n\n", answer.getRating());
+                System.out.printf("%s\n\n", answer.getHumanizedRating());
             }
         }
 
@@ -821,6 +854,107 @@ public class Main {
         }
     }
 
+    private static void comment(Pergunta question, List<Resposta> answers) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > COMENTÁRIO\n");
+
+        System.out.println("1) Comentar pergunta\n2) Comentar resposta\n\n0) Retornar\n");
+        System.out.print("Opção: ");
+        int option = Integer.parseInt(input.readLine());
+        if(option == 0) {
+            return;
+        }
+
+        switch(option) {
+            case 1:
+                commentQuestion(question);
+                break;
+
+            case 2:
+                commentAnswer(answers);
+                break;
+        }
+    }
+
+    private static void commentQuestion(Pergunta question) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > COMENTÁRIO > PERGUNTA\n");
+
+        textBox(question.getQuestion());
+        System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), (question.getUserID() == user.getID() ? "Você" : usersDatabase.read(question.getUserID()).getName()));
+        System.out.printf("Palavras chave: %s\n", question.getKeywords());
+        System.out.printf("Nota: %s\n", question.getHumanizedRating());
+
+        System.out.print("\nInsira o comentário: ");
+        String commentText = input.readLine();
+        if(commentText.length() == 0) {
+            System.out.println(Colors.ANSI_RED + "\nO texto do comentário não pode ser vazio!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        textBox(commentText);
+        System.out.print("Confirmar comentário?[Y/n]: ");
+        String confirm = input.readLine().toLowerCase();
+        if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
+            System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
+
+        Comentario comment = new Comentario(user.getID(), question.getID(), (byte) 'P', commentText);
+        commentsDatabase.create(comment);
+        relQuestionComments.create(question.getID(), comment.getID());
+        System.out.println(Colors.ANSI_GREEN + "Comentário criado com sucesso!" + Colors.ANSI_RESET);
+        sleep();
+    }
+
+    private static void commentAnswer(List<Resposta> answers) throws Exception {
+        System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > COMENTÁRIO > RESPOSTA\n");
+
+        for(Resposta answer : answers) {
+            System.out.printf("%d.\n", answer.getID());
+            System.out.printf("%s\n", answer.getAnswer());
+            System.out.printf("Respondido em %s por %s\n", answer.getHumanizedDate(), (answer.getUserID() == user.getID() ? "Você" : usersDatabase.read(answer.getUserID()).getName()));
+            System.out.printf("Nota: %s\n\n", answer.getHumanizedRating());
+        }
+
+        System.out.println("0) Retornar\n");
+        System.out.print("Insira o ID: ");
+        int ID = Integer.parseInt(input.readLine());
+        if(ID == 0) {
+            return;
+        }
+
+        Resposta answer = answersDatabase.read(ID);
+        textBox(answer.getAnswer());
+
+        System.out.print("\nInsira o comentário: ");
+        String commentText = input.readLine();
+        if(commentText.length() == 0) {
+            System.out.println(Colors.ANSI_RED + "\nO texto do comentário não pode ser vazio!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        textBox(commentText);
+        System.out.print("Confirmar comentário?[Y/n]: ");
+        String confirm = input.readLine().toLowerCase();
+        if(confirm.length() > 0 && confirm.charAt(0) == 'n') {
+            System.out.println(Colors.ANSI_RED + "\nNão confirmado!\n" + Colors.ANSI_RESET);
+            sleep();
+            return;
+        }
+
+        System.out.println(Colors.ANSI_GREEN + "Confirmado!" + Colors.ANSI_RESET);
+
+        Comentario comment = new Comentario(user.getID(), answer.getID(), (byte) 'R', commentText);
+        commentsDatabase.create(comment);
+        relAnswerComments.create(answer.getID(), comment.getID());
+        System.out.println(Colors.ANSI_GREEN + "Comentário criado com sucesso!" + Colors.ANSI_RESET);
+        sleep();
+    }
+
     private static void rate(Pergunta question, List<Resposta> answers) throws Exception {
         System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > AVALIAÇÃO\n");
 
@@ -846,7 +980,7 @@ public class Main {
         System.out.println("\n\nPERGUNTAS [Alpha]\n=================\n\nINÍCIO > PESQUISA DE PERGUNTAS > PERGUNTA > AVALIAÇÃO > PERGUNTA\n");
 
         if(question.getUserID() != user.getID()) {
-            questionBox(question.getQuestion());
+            textBox(question.getQuestion());
             System.out.printf("Criada em %s por %s\n", question.getHumanizedDate(), (question.getUserID() == user.getID() ? "Você" : usersDatabase.read(question.getUserID()).getName()));
             System.out.printf("Palavras chave: %s\n", question.getKeywords());
             System.out.printf("Nota: %s\n", question.getHumanizedRating());

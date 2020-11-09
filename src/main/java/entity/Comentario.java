@@ -6,33 +6,30 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class Resposta implements Registro {
+public class Comentario implements Registro {
     public static final String __author__ = "Texugo";
 
-    private int ID, userID, questionID;
+    private int ID, userID, relatedID;
+    private byte relatedType;
     private long createdAt;
-    private short rating;
-    private boolean status;
-    private String answer;
+    private String comment;
 
-    public Resposta() {
+    public Comentario() {
         this.ID = -1;
         this.userID = -1;
-        this.questionID = -1;
+        this.relatedID = -1;
         this.createdAt = 0;
-        this.rating = 0;
-        this.answer = "";
-        this.status = true;
+        this.relatedType = ' ';
+        this.comment = "";
     }
 
-    public Resposta(int userID, int questionID, String answer) {
+    public Comentario(int userID, int relatedID, byte relatedType, String comment) {
         this.ID = -1;
         this.userID = userID;
-        this.questionID = questionID;
+        this.relatedID = relatedID;
+        this.relatedType = relatedType;
         this.createdAt = System.currentTimeMillis();
-        this.rating = 0;
-        this.answer = answer;
-        this.status = true;
+        this.comment = comment;
     }
 
     public void setID(int ID) {
@@ -41,46 +38,25 @@ public class Resposta implements Registro {
 
     public void setUserID(int userID) { this.userID = userID; }
 
-    public void setQuestionID(int questionID) { this.questionID = questionID; }
+    public void setRelatedID(int relatedID) { this.relatedID = relatedID; }
+
+    public void setRelatedType(byte relatedType) { this.relatedType = relatedType; }
 
     public void setCreatedAt(long createdAt) { this.createdAt = createdAt; }
 
-    public void setAnswer(String answer) { this.answer = answer; }
-
-    public void setRating(short rating) { this.rating = rating; }
-
-    public void updateRating(boolean vote) { if(vote) { this.rating++; } else { this.rating--; } }
-
-    public void setStatus(boolean status) { this.status = status; }
+    public void setComment(String comment) { this.comment = comment; }
 
     public int getID() { return this.ID; }
 
     public int getUserID() { return this.userID; }
 
-    public int getQuestionID() { return this.questionID; }
+    public int getRelatedID() { return this.relatedID; }
+
+    public byte getRelatedType() { return relatedType; }
 
     public long getCreatedAt() { return this.createdAt; }
 
-    public String getAnswer() { return this.answer; }
-
-    public short getRating() { return this.rating; }
-
-    public String getHumanizedRating() {
-        String color = Colors.ANSI_YELLOW;
-        String icon = "●";
-
-        if(this.rating > 0) {
-            color = Colors.ANSI_GREEN;
-            icon = "▲";
-        } else if(this.rating < 0) {
-            color = Colors.ANSI_RED;
-            icon = "▼";
-        }
-
-        return color + this.rating + " " + icon + Colors.ANSI_RESET;
-    }
-
-    public boolean getStatus() { return this.status; }
+    public String getComment() { return this.comment; }
 
     public String getFormattedDate() {
         SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
@@ -104,11 +80,10 @@ public class Resposta implements Registro {
 
         dataOutputStream.writeInt(this.ID);
         dataOutputStream.writeInt(this.userID);
-        dataOutputStream.writeInt(this.questionID);
+        dataOutputStream.writeInt(this.relatedID);
+        dataOutputStream.writeByte(this.relatedType);
         dataOutputStream.writeLong(this.createdAt);
-        dataOutputStream.writeShort(this.rating);
-        dataOutputStream.writeUTF(this.answer);
-        dataOutputStream.writeBoolean(this.status);
+        dataOutputStream.writeUTF(this.comment);
 
         return byteArrayOutputStream.toByteArray();
     }
@@ -119,11 +94,10 @@ public class Resposta implements Registro {
 
         this.ID = dataInputStream.readInt();
         this.userID = dataInputStream.readInt();
-        this.questionID = dataInputStream.readInt();
+        this.relatedID = dataInputStream.readInt();
+        this.relatedType = dataInputStream.readByte();
         this.createdAt = dataInputStream.readLong();
-        this.rating = dataInputStream.readShort();
-        this.answer = dataInputStream.readUTF();
-        this.status = dataInputStream.readBoolean();
+        this.comment = dataInputStream.readUTF();
     }
 
     @Override
@@ -133,11 +107,10 @@ public class Resposta implements Registro {
         return "entity.Resposta{" +
                 "ID=" + this.ID +
                 ", userID=" + this.userID +
-                ", questionID=" + this.questionID +
+                ", relatedID=" + this.relatedID +
+                ", relatedType=" + relatedType +
                 ", createdAt=" + formatter.format(createdAt) +
-                ", rating=" + this.rating +
-                ", answer='" + this.answer + '\'' +
-                ", status=" + this.status +
+                ", comment='" + this.comment + '\'' +
                 '}';
     }
 }
